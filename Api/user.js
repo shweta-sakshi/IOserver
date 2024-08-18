@@ -49,7 +49,7 @@ router.post("/register", upload.single("file"), async (req, res) => {
 
             //To verify Email account before creating user account
             const ActivationToken = createActivationToken(finalUser);
-            const activationUrl = `http://localhost:5173/activation/${ActivationToken}`
+            const activationUrl = `https://heroic-kitsune-a6f0c0.netlify.app/activation/${ActivationToken}`
 
             //sending token in email;
             try {

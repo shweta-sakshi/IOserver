@@ -50,7 +50,7 @@ router.post("/seller-SignUp", upload.single("file"), async (req, res) => {
             console.log(finalSeller);
             //To verify Email account before creating user account
             const ActivationToken = createActivationToken(finalSeller);
-            const activationUrl = `http://localhost:5173/seller/activation/${ActivationToken}`
+            const activationUrl = `https://heroic-kitsune-a6f0c0.netlify.app/activation/${ActivationToken}`
             console.log(activationUrl)
             try {
                 await sendMail({
@@ -121,7 +121,7 @@ router.post("/seller/activation", CatchAsyncErrors(async (req, res, next) => {
             return next(new ErrorHandler(error.message, 500))
         }
 
-        sendShopToken(seller, 201, res); 
+        sendShopToken(seller, 201, res);
 
     } catch (error) {
         console.log(error)
