@@ -63,13 +63,13 @@ router.post("/register", upload.single("file"), async (req, res) => {
                     message: "Please check your mail to activate account"
                 })
             } catch (error) {
-                console.log(error)
+                console.log("Error in sending mail: " + error)
                 res.status(500).json(error);
             }
         }
 
     } catch (err) {
-        console.log(err);
+        console.log("error while registering: "+err);
         res.status(402).json(err);
     }
 });
@@ -117,13 +117,14 @@ router.post("/activation",
                     message: "Account created"
                 })
             } catch (error) {
+                console.log("error while sending mail: " + error);
                 res.status(500).json(error);
             }
 
             sendToken(user, 201, res);
 
         } catch (error) {
-            console.log(error);
+            console.log("error while activation mail: "+error);
             res.status(500).json(error.message);
         }
     }))
