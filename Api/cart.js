@@ -49,28 +49,30 @@ router.get('/getitemsfromcart', authenticate, async (req, res) => {
 
 // Remove item from cart
 router.post('/removefromcart', authenticate, async (req, res) => {
-    console.log("deletion procedure starts");
     const { product } = req.body;
     const productId = product._id;
-    console.log(product);
-    console.log(productId);
+
     try {
         const cart = await Cart.findOne({ user: req.userId });
-        console.log(cart);
         const itemIndex = cart.items.findIndex(item => item.productId.toString() === productId);
         if (itemIndex !== -1) {
+
             cart.items.splice(itemIndex, 1);
-            cart.subTotal = cart.items.map(item => item.total).reduce((acc, next) => acc + next);
+
+            cart.subTotal = cart.items.length > 0
+                ? cart.items.map(item => item.total).reduce((acc, next) => acc + next, 0)
+                : 0;
             await cart.save();
             res.status(200).json({ message: 'Item removed from cart' });
+
         } else {
             res.status(404).json({ message: 'Item is no longer in cart' });
         }
     } catch (error) {
+        console.log("error");
         console.log(error);
     }
 });
-
 // payment
 router.post('/payment', authenticate, async (req, res) => {
     const { payment } = req.body;
