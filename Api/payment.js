@@ -47,57 +47,74 @@ router.post("/payment", authenticate,
 //A webhook is a way for your backend to receive real-time updates from an external service 
 // without needing to request data repeatedly.
 
-router.post("/webhook", express.raw({ type: "application/json" }), async (req, res) => {
-    const sig = req.headers["stripe-signature"];
+router.post('/webhooks', express.raw({ type: 'application/json' }), (request, response) => {
+    const sig = request.headers['stripe-signature'];
 
     let event;
+
     try {
-        event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+        event = stripe.webhooks.constructEvent(request.body, sig, endpointSecret);
     } catch (err) {
-        console.error("Webhook signature verification failed:", err.message);
-        return res.status(400).send(`Webhook Error: ${err.message}`);
+        response.status(400).send(`Webhook Error: ${err.message}`);
+        return;
     }
 
-    // Handle successful payment
-    if (event.type === "checkout.session.completed") {
-        const session = event.data.object;
-
-        try {
-            const userId = session.client_reference_id;
-            const paymentId = session.id;
-            const amountPaid = session.amount_total / 100; // Convert cents to INR
-            const paymentStatus = session.payment_status;
-
-            // Fetch line items to get product details
-            const lineItems = await stripe.checkout.sessions.listLineItems(paymentId);
-
-            const items = lineItems.data.map(item => ({
-                productId: item.price.id,
-                pname: item.description,
-                price: item.amount_total / 100,
-                quantity: item.quantity,
-            }));
-
-            // Save order in database
-            const newOrder = new Order({
-                userId,
-                paymentId,
-                items,
-                totalAmount: amountPaid,
-                paymentStatus: paymentStatus === "paid" ? "Completed" : "Pending"
-            });
-
-            await newOrder.save();
-            console.log("✅ Order saved to database:", newOrder);
-
-        } catch (error) {
-            console.error("Error saving order:", error);
-            return res.status(500).json({ error: "Failed to save order" });
-        }
+    // Handle the event
+    switch (event.type) {
+        case 'checkout.session.async_payment_failed':
+            const checkoutSessionAsyncPaymentFailed = event.data.object;
+            console.log("checkout.session.async_payment_failed", checkoutSessionAsyncPaymentFailed);
+            // Then define and call a function to handle the event checkout.session.async_payment_failed
+            break;
+        case 'checkout.session.completed':
+            const checkoutSessionCompleted = event.data.object;
+            console.log("checkout.session.completed", checkoutSessionCompleted);
+            handleCheckoutSession(checkoutSessionCompleted);
+            // Then define and call a function to handle the event checkout.session.completed
+            break;
+        // other event types
+        default:
+            console.log(`Unhandled event type ${event.type}`);
     }
 
-    res.status(200).json({ received: true });
+    // Return a 200 response to acknowledge receipt of the event
+    response.send();
 });
+
+const handleCheckoutSession = async (session) => {
+    const userId = session.client_reference_id;
+    console.log("inside handleCheckoutSession" + userId);
+
+    const CartItems = await Cart.findOne({ user: userId });
+
+    // Save payment details in database.
+    CartItems.items.map(async (item) => {
+        const newpayment = new paymentDetails({
+            user: userId,
+            paymentId: session.id,
+            item: {
+                productId: item.productId,
+                pname: item.pname,
+                photo: item.photo,
+                number: item.number,
+                price: item.price,
+            },
+            paymentStatus: "success",
+            ShippingAddress: session.shipping ? session.shipping.address : null,
+        });
+        await newpayment.save();
+    });
+
+    console.log("Payment details saved");
+
+
+    // Clear items from cart after purchase.
+    CartItems.items = [];
+    CartItems.subTotal = 0;
+    await CartItems.save();
+
+    console.log("Cart items cleared");
+};
 
 router.get(
     "/stripeapikey",
