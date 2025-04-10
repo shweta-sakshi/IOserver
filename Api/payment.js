@@ -44,7 +44,7 @@ router.post("/payment", authenticate,
     })
 )
 
-//A webhook is a way for your backend to receive real-time updates from an external service 
+//A webhook is a way for backend to receive real-time updates from an external service 
 // without needing to request data repeatedly.
 
 router.post('/webhooks', express.raw({ type: 'application/json' }), (request, response) => {

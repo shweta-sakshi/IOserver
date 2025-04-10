@@ -42,10 +42,10 @@ router.get('/getitemsfromcart', authenticate, async (req, res) => {
             res.status(201).json({ message: "No Items added to Cart" });
     } catch (error) {
         console.log(error);
-        res.status(422).json({ error: err });
+        res.status(422).json({ error: error });
     }
 
-})
+});
 
 // Remove item from cart
 router.post('/removefromcart', authenticate, async (req, res) => {
@@ -72,15 +72,6 @@ router.post('/removefromcart', authenticate, async (req, res) => {
         console.log("error");
         console.log(error);
     }
-});
-// payment
-router.post('/payment', authenticate, async (req, res) => {
-    const { payment } = req.body;
-    const cart = await Cart.findOne({ user: req.userId });
-    cart.items = [];
-    cart.subTotal = 0;
-    await cart.save();
-    res.status(200).json({ message: 'Payment successful' });
 });
 
 module.exports = router;

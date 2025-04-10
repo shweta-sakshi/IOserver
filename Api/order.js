@@ -15,7 +15,7 @@ router.post(
         try {
             const { cart, shippingAddress, user, totalPrice, paymentInfo } = req.body;
 
-            //   group cart items by shopId
+            // group cart items by shopId
             const shopItemsMap = new Map();
 
             for (const item of cart) {
@@ -50,26 +50,6 @@ router.post(
     })
 );
 
-// get all orders of user
-router.get(
-    "/get-all-orders/:userId",
-    authenticate,
-    catchAsyncErrors(async (req, res, next) => {
-        try {
-            const orders = await Order.find({ "user._id": req.params.userId }).sort({
-                createdAt: -1,
-            });
-
-            res.status(200).json({
-                success: true,
-                orders,
-            });
-        } catch (error) {
-            return next(new ErrorHandler(error.message, 500));
-        }
-    })
-);
-
 // get all orders of seller
 router.get(
     "/get-seller-all-orders/:shopId",
@@ -92,127 +72,18 @@ router.get(
     })
 );
 
-// update order status for seller
-router.put(
-    "/update-order-status/:id",
-    authenticateSeller,
-    catchAsyncErrors(async (req, res, next) => {
-        try {
-            const order = await Order.findById(req.params.id);
-
-            if (!order) {
-                return next(new ErrorHandler("Order not found with this id", 400));
-            }
-            if (req.body.status === "Transferred to delivery partner") {
-                order.cart.forEach(async (o) => {
-                    await updateOrder(o._id, o.qty);
-                });
-            }
-
-            order.status = req.body.status;
-
-            if (req.body.status === "Delivered") {
-                order.deliveredAt = Date.now();
-                order.paymentInfo.status = "Succeeded";
-                const serviceCharge = order.totalPrice * .10;
-                await updateSellerInfo(order.totalPrice - serviceCharge);
-            }
-
-            await order.save({ validateBeforeSave: false });
-
-            res.status(200).json({
-                success: true,
-                order,
-            });
-
-            async function updateOrder(id, qty) {
-                const product = await Product.findById(id);
-
-                product.stock -= qty;
-                product.sold_out += qty;
-
-                await product.save({ validateBeforeSave: false });
-            }
-
-            async function updateSellerInfo(amount) {
-                const seller = await Shop.findById(req.seller.id);
-
-                seller.availableBalance = amount;
-
-                await seller.save();
-            }
-        } catch (error) {
-            return next(new ErrorHandler(error.message, 500));
-        }
-    })
-);
-
-// give a refund request ----- user
-router.put(
-    "/order-refund/:id",
-    authenticate,
-    catchAsyncErrors(async (req, res, next) => {
-        try {
-            const order = await Order.findById(req.params.id);
-
-            if (!order) {
-                return next(new ErrorHandler("Order not found with this id", 400));
-            }
-
-            order.status = req.body.status;
-
-            await order.save({ validateBeforeSave: false });
-
-            res.status(200).json({
-                success: true,
-                order,
-                message: "Order Refund Request successfully!",
-            });
-        } catch (error) {
-            return next(new ErrorHandler(error.message, 500));
-        }
-    })
-);
-
-// accept the refund ---- seller
-router.put(
-    "/order-refund-success/:id",
-    authenticateSeller,
-    catchAsyncErrors(async (req, res, next) => {
-        try {
-            const order = await Order.findById(req.params.id);
-
-            if (!order) {
-                return next(new ErrorHandler("Order not found with this id", 400));
-            }
-
-            order.status = req.body.status;
-
-            await order.save();
-
-            res.status(200).json({
-                success: true,
-                message: "Order Refund successfull!",
-            });
-
-            if (req.body.status === "Refund Success") {
-                order.cart.forEach(async (o) => {
-                    await updateOrder(o._id, o.qty);
-                });
-            }
-
-            async function updateOrder(id, qty) {
-                const product = await Product.findById(id);
-
-                product.stock += qty;
-                product.sold_out -= qty;
-
-                await product.save({ validateBeforeSave: false });
-            }
-        } catch (error) {
-            return next(new ErrorHandler(error.message, 500));
-        }
-    })
-);
+//get orders of user.
+router.get('/orders', authenticate, async (req, res) => {
+    try {
+        const userId = req.userId;
+        const orders = await paymentDetails.find({ user: userId });
+        res.status(201).json({
+            success: true,
+            orders,
+        });
+    } catch (error) {
+        res.status(400).json({ error });
+    }
+})
 
 module.exports = router;

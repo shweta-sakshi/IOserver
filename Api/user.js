@@ -214,8 +214,6 @@ router.get("/logout", authenticate, async (req, res) => {
 
 module.exports = router;
 
-
-
 /* 
 user signup-->get activation token on mail---->click on activation link in mail---->
 user account created---->user account successful creation mail------>user can login with the same mail-Id and password------>

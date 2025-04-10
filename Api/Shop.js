@@ -215,7 +215,6 @@ router.get("/sellersignOut", authenticateSeller, async (req, res) => {
 
 module.exports = router;
 
-
 /* 
 seller signup-->get activation token on mail---->click on activation link in mail---->
 seller shop created---->seller get successful shop creation mail------>seller can login with the same mail-Id and password------>
